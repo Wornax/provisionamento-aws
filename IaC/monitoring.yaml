@@ -1,0 +1,77 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Stack Monitoring DevOps Wilton 
+
+Parameters: 
+  TagsProject: 
+    Type: String 
+    Default: "Devops"
+  TagsTeam: 
+    Type: String 
+    Default: "Adatech"
+  ImageID: 
+    Type: String 
+    Default: "ami-03c951bbe993ea087"  
+
+Resources:
+  # Inicio do Recurso SG
+  MonitoringSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Security group for monitoring Gabriel
+      SecurityGroupIngress: 
+        - IpProtocol: tcp 
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp 
+          FromPort: 443 
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 9090
+          ToPort: 9090
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 9093
+          ToPort: 9093
+          CidrIp: 0.0.0.0/0    
+      Tags:
+        - Key: Name 
+          Value: sg-monitoring 
+        - Key: Project 
+          Value: !Ref TagsProject
+        - Key: Team 
+          Value: !Ref TagsTeam
+
+  # Inicio do recurso EC2
+  MonitoringInstance: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref ImageID
+      InstanceType: t2.micro
+      SecurityGroups: 
+        - !Ref MonitoringSG
+      #IamInstanceProfile:
+      UserData: 
+        Fn::Base64: |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y docker git
+          sudo service docker start
+          sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose
+          sudo chmod +x /usr/bin/docker-compose
+          sudo git clone https://github.com/wiltoninfra/provisionamento-aws.git
+          cd provisionamento-aws/monitoring
+          sudo docker-compose up -d
+      Tags:
+        - Key: Name 
+          Value: instance-monitoring 
+        - Key: Project
+          Value: !Ref TagsProject
+        - Key: Team 
+          Value: !Ref TagsTeam
